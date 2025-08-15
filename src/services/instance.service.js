@@ -4,6 +4,8 @@ import { toDataURL } from 'qrcode';
 import { saveConfig, deleteConfig, getAllConfigs } from './storage.service.js';
 import { trigger } from './webhook.service.js';
 import { sleep, validateBrazilianNumber } from '../utils/utils.js'
+import fs from 'fs-extra';
+import path from 'path';
 
 const { Client, LocalAuth } = wppPkg;
 const instances = {};
@@ -57,8 +59,25 @@ export async function create (config) {
     return instances[config.key].getInfo();
 }
 
-export function get (id) {
-    return instances[id];
+export function get(id) {
+  const instance = instances[id];
+  if (!instance) return null;
+
+  // Só retorna info se já estiver conectado
+  let number = null;
+  let name = null;
+  if (instance.client && instance.client.info) {
+    number = instance.client.info.wid.user;
+    name = instance.client.info.pushname;
+  }
+
+  return {
+    key: instance.config.key,
+    status: instance.client && instance.client.info ? 'connected' : 'pending',
+    webhooks: instance.config.webhooks,
+    number,
+    name
+  };
 }
 
 export async function getQrCode (id) {
@@ -73,12 +92,20 @@ export async function logout (id) {
     await instance.client.logout();
 }
 
-export async function deleteInstance (id) {
+export async function deleteInstance(id) {
     const instance = instances[id];
     if (!instance) throw new Error('Instance not found');
     await instance.client.destroy();
     delete instances[id];
     await deleteConfig(id);
+
+    const authPath = path.join(process.cwd(), '.wwebjs_auth', `session-${id}`);
+
+    try {
+        await fs.remove(authPath);
+    } catch (e) {
+        console.error('Erro ao remover cache:', e.message);
+    }
 }
 
 export async function loadAll () {

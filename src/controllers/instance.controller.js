@@ -10,9 +10,9 @@ export async function createInstance(req, res) {
 }
 
 export function getInstance(req, res) {
-  const instance = get(req.params.id);
-  if (!instance) return res.status(404).json({ error: 'Instance not found' });
-  res.json(instance.getInfo());
+  const info = get(req.params.id);
+  if (!info) return res.status(404).json({ error: 'Instance not found' });
+  res.json(info);
 }
 
 export async function getQrBase64(req, res) {
