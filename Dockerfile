@@ -1,4 +1,4 @@
-FROM node:lts-alpine as build-stage
+FROM node:lts-alpine
 
 WORKDIR /app
 
@@ -10,11 +10,12 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont
 
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 COPY package*.json ./
 RUN npm install -f
 COPY . .
 
 EXPOSE 3333
 
-CMD cd /app/ && \
-     npm start
+CMD ["npm", "start"]

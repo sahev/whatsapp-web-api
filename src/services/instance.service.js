@@ -14,9 +14,18 @@ export async function create (config) {
     if (!config.key) throw new Error('Instance key required');
     if (instances[config.key]) throw new Error('Instance already exists');
 
+    const puppeteerConfig = {
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    };
+
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: config.key }),
-        puppeteer: { headless: true, args: ['--no-sandbox'] }
+        puppeteer: puppeteerConfig
     });
 
     let qrCode = null;
@@ -59,25 +68,25 @@ export async function create (config) {
     return instances[config.key].getInfo();
 }
 
-export function get(id) {
-  const instance = instances[id];
-  if (!instance) return null;
+export function get (id) {
+    const instance = instances[id];
+    if (!instance) return null;
 
-  // Só retorna info se já estiver conectado
-  let number = null;
-  let name = null;
-  if (instance.client && instance.client.info) {
-    number = instance.client.info.wid.user;
-    name = instance.client.info.pushname;
-  }
+    // Só retorna info se já estiver conectado
+    let number = null;
+    let name = null;
+    if (instance.client && instance.client.info) {
+        number = instance.client.info.wid.user;
+        name = instance.client.info.pushname;
+    }
 
-  return {
-    key: instance.config.key,
-    status: instance.client && instance.client.info ? 'connected' : 'pending',
-    webhooks: instance.config.webhooks,
-    number,
-    name
-  };
+    return {
+        key: instance.config.key,
+        status: instance.client && instance.client.info ? 'connected' : 'pending',
+        webhooks: instance.config.webhooks,
+        number,
+        name
+    };
 }
 
 export async function getQrCode (id) {
@@ -92,7 +101,7 @@ export async function logout (id) {
     await instance.client.logout();
 }
 
-export async function deleteInstance(id) {
+export async function deleteInstance (id) {
     const instance = instances[id];
     if (!instance) throw new Error('Instance not found');
     await instance.client.destroy();
